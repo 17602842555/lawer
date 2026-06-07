@@ -134,6 +134,7 @@ window.API = (function () {
     return jsonFetch('/api/contracts/' + id + '/review', { method: 'POST' });
   }
   const getContract = (id) => jsonFetch('/api/contracts/' + id);
+  const getStatus = (id) => jsonFetch('/api/contracts/' + id + '/status');
   const listContracts = () => jsonFetch('/api/contracts');
   function createConversation(contractId, title) {
     return jsonFetch('/api/contracts/' + contractId + '/conversations', {
@@ -178,7 +179,7 @@ window.API = (function () {
     health, ready,
     register, login, logout, me,
     uploadFile, uploadText, sampleContract, review,
-    getContract, listContracts, createConversation, streamChat,
+    getContract, getStatus, listContracts, createConversation, streamChat,
     listConversations, getMessages,
     get online() { return STATE.online; },
     get live() { return STATE.live; },

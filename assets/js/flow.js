@@ -67,9 +67,17 @@ window.FLOW = (function(){
     at(3950,()=>{
       if(!work){ finish(fileName); return; }
       let done=false; work.then(()=>done=true,()=>done=true);
-      // 后端仍在审核 → 显示「整理结果」提示, 就绪/超时后再进入
-      setTimeout(()=>{ if(!done && chip) chip.innerHTML=`<span class="fdot"></span>正在整理审核结果…`; },300);
-      Promise.race([ work.catch(()=>null), wait(30000) ]).then(()=>{
+      // 处理中持续刷新提示(扫描件显示 OCR 逐页进度)
+      setTimeout(()=>{ if(!done && chip) chip.innerHTML=`<span class="fdot"></span>正在审核合同…`; },300);
+      const progTimer=setInterval(()=>{
+        if(done){ clearInterval(progTimer); return; }
+        const p=window.STATE&&STATE.ocrProgress;
+        if(!chip) return;
+        if(p&&p.phase==='ocr'&&p.total) chip.innerHTML=`<span class="fdot"></span>扫描件识别中 ${p.done}/${p.total} 页…`;
+        else if(p&&p.phase==='review') chip.innerHTML=`<span class="fdot"></span>识别完成，正在审核…`;
+      },700);
+      Promise.race([ work.catch(()=>null), wait(310000) ]).then(()=>{
+        clearInterval(progTimer);
         if(window.STATE && STATE.flowError){ showError(STATE.flowError); return; }
         finish(fileName);
       });
@@ -108,13 +116,17 @@ window.FLOW = (function(){
 
   /* 后端流程: 上传/示例 → 审核 → 建会话; 失败则记录错误供 showError 展示 */
   async function prepareContract(fileName, opts){
-    window.STATE.contract=null; window.STATE.conversationId=null; window.STATE.flowError=null;
+    window.STATE.contract=null; window.STATE.conversationId=null; window.STATE.flowError=null; window.STATE.ocrProgress=null;
     try{
       await API.ready();
       if(!API.online){ window.STATE.flowError='后端服务未连接。请检查网络或后端地址。'; return null; }
       let contract=null;
       if(opts.sampleKey){ const r=await API.sampleContract(opts.sampleKey); contract={ id:r.id, filename:r.filename, ...r.review }; }
-      else if(opts.fileObj){ const up=await API.uploadFile(opts.fileObj); contract=await API.review(up.id); }
+      else if(opts.fileObj){
+        const up=await API.uploadFile(opts.fileObj);
+        if(up.status==='processing'){ contract=await pollScanned(up.id); }   // 扫描件: 后台 OCR, 轮询
+        else { contract=await API.review(up.id); }
+      }
       else if(opts.contractId){ contract=await API.getContract(opts.contractId); }
       else return null;
       if(!contract||!Array.isArray(contract.clauses)||!contract.clauses.length){ window.STATE.flowError='审核结果为空，请重试。'; return null; }
@@ -130,6 +142,20 @@ window.FLOW = (function(){
     }
   }
   const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
+
+  /* 扫描件: 轮询后台 OCR+审核 状态, 完成后取结果 */
+  async function pollScanned(id){
+    const deadline=Date.now()+305000;
+    while(Date.now()<deadline){
+      let st; try{ st=await API.getStatus(id); }catch(e){ window.STATE.flowError=e.message||'查询状态失败'; return null; }
+      window.STATE.ocrProgress = st.progress || null;
+      if(st.status==='done'){ window.STATE.ocrProgress=null; return await API.getContract(id); }
+      if(st.status==='error'){ window.STATE.flowError=st.error||'扫描件处理失败，请重试。'; return null; }
+      await wait(3000);
+    }
+    window.STATE.flowError='处理超时，请重试或换用文字版合同。';
+    return null;
+  }
 
   function init(){
     // restart / close handled by report's back button

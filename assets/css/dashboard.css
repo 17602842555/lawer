@@ -1,0 +1,46 @@
+/* ====================================================================
+   DASHBOARD  ·  合同管理
+   ==================================================================== */
+.dash{padding:96px 0 80px}
+.dash-hero{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:34px}
+.dash-hero h2{font-family:var(--serif);font-weight:600;font-size:clamp(26px,3.6vw,40px);letter-spacing:-.02em}
+.dash-hero p{color:var(--muted);font-size:14px;margin-top:8px}
+
+.dash-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:30px}
+.kpi{background:var(--panel);border:1px solid var(--hair);border-radius:18px;padding:22px 24px;backdrop-filter:blur(12px)}
+.kpi .k-num{font-family:var(--disp);font-weight:600;font-size:32px;letter-spacing:-.02em;line-height:1}
+.kpi .k-num.acc{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.kpi .k-lbl{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:10px}
+@media (max-width:760px){.dash-kpis{grid-template-columns:repeat(2,1fr)}}
+
+.dash-table{background:var(--panel);border:1px solid var(--hair);border-radius:20px;overflow:hidden;backdrop-filter:blur(12px)}
+.dt-head,.dt-row{display:grid;grid-template-columns:1fr 120px 130px 100px 120px;align-items:center;gap:16px;padding:16px 24px}
+.dt-head{border-bottom:1px solid var(--hair);font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted)}
+.dt-row{border-bottom:1px solid var(--hair);cursor:pointer;transition:background .2s}
+.dt-row:last-child{border-bottom:0}
+.dt-row:hover{background:var(--panel-2)}
+.dt-file{display:flex;align-items:center;gap:13px;min-width:0}
+.dt-file .fi{width:32px;height:32px;border-radius:8px;background:var(--acc-soft);border:1px solid var(--acc-line);
+  display:grid;place-items:center;flex:none}
+.dt-file .fi svg{width:15px;height:15px;stroke:var(--acc-ink);fill:none;stroke-width:1.7}
+.dt-file .fn{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dt-file .fd{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.06em;margin-top:2px}
+.dt-type{font-family:var(--mono);font-size:12px;color:var(--ink-2);letter-spacing:.04em}
+.dt-risk{display:flex;gap:7px;align-items:center;font-size:13px;color:var(--ink-2)}
+.dt-risk .rd{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:12px}
+.dt-risk .rd b{font-weight:600}
+.dt-score{display:flex;align-items:center;gap:9px}
+.dt-score .sc-ring{width:34px;height:34px;flex:none}
+.dt-score .sc-n{font-family:var(--disp);font-weight:600;font-size:15px}
+.dt-go{justify-self:end;display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--acc-ink)}
+.dt-go svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;transition:transform .25s}
+.dt-row:hover .dt-go svg{transform:translateX(3px)}
+.dt-badge{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:3px 8px;border-radius:6px;
+  background:var(--acc-soft);color:var(--acc-ink)}
+@media (max-width:760px){
+  .dt-head{display:none}
+  .dt-row{grid-template-columns:1fr auto;gap:10px}
+  .dt-type,.dt-risk{display:none}
+}

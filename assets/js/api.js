@@ -1,0 +1,140 @@
+/* ====================================================================
+   API · 前端 ↔ 后端客户端
+   - 运行时状态 window.STATE: { contract, conversationId, live, online }
+   - window.ACTIVE(): 当前数据源 (真实合同 → STATE.contract; 否则回退 DATA mock)
+   - 后端不可用 / 未配置模型时, 前端自动降级为本地 mock, 页面始终可用
+   ==================================================================== */
+window.STATE = { contract: null, conversationId: null, live: false, online: false };
+
+/* 当前生效的数据集: 真实审核结果 or 内置演示数据 (DATA) */
+window.ACTIVE = function () {
+  const c = window.STATE && window.STATE.contract;
+  if (c && Array.isArray(c.clauses) && c.clauses.length) {
+    return {
+      SUMMARY: c.summary || {},
+      CLAUSES: c.clauses || [],
+      MISSING: c.missing || [],
+      KB: c.kb || [],
+      QUICK: window.DATA.QUICK,
+      sevLabel: window.DATA.sevLabel,
+      sevDot: window.DATA.sevDot,
+    };
+  }
+  return window.DATA;
+};
+
+window.API = (function () {
+  /* API 基地址解析(优先级): ?api=<url> (访问一次即记住) → localStorage → <meta name="api-base"> → 同源
+     用于「前端 GitHub Pages + 后端 NAS/隧道」的分离部署; 临时隧道 URL 会变, 用 ?api= 切换即可 */
+  function resolveBase() {
+    try {
+      const q = new URL(location.href).searchParams.get('api');
+      if (q !== null) {
+        if (q) localStorage.setItem('apiBase', q.replace(/\/+$/, ''));
+        else localStorage.removeItem('apiBase');
+      }
+    } catch {}
+    let b = '';
+    try { b = localStorage.getItem('apiBase') || ''; } catch {}
+    if (!b) { const m = document.querySelector('meta[name="api-base"]'); if (m && m.content) b = m.content.trim(); }
+    return b.replace(/\/+$/, '');
+  }
+  const base = resolveBase();
+  let healthDone = false;
+
+  async function jsonFetch(url, opts) {
+    const res = await fetch(base + url, opts);
+    if (!res.ok) {
+      let msg = res.status + '';
+      try { msg = (await res.json()).error || msg; } catch {}
+      throw new Error(msg);
+    }
+    return res.json();
+  }
+
+  /* ---- 健康检查: 后端是否在线 / 是否接入真实模型 ---- */
+  async function health() {
+    try {
+      const h = await jsonFetch('/api/health');
+      STATE.online = true; STATE.live = !!h.live; healthDone = true;
+      return h;
+    } catch {
+      STATE.online = false; STATE.live = false; healthDone = true;
+      return { ok: false, live: false };
+    }
+  }
+  const ready = () => healthDone ? Promise.resolve() : health();
+
+  /* ---- 合同: 上传 / 文本 / 示例 / 审核 / 读取 / 历史 ---- */
+  function uploadFile(file) {
+    const fd = new FormData();
+    fd.append('file', file);
+    return jsonFetch('/api/contracts', { method: 'POST', body: fd });
+  }
+  function uploadText(filename, text) {
+    return jsonFetch('/api/contracts/text', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename, text }),
+    });
+  }
+  function sampleContract(key) {
+    return jsonFetch('/api/contracts/sample', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key }),
+    });
+  }
+  function review(id) {
+    return jsonFetch('/api/contracts/' + id + '/review', { method: 'POST' });
+  }
+  const getContract = (id) => jsonFetch('/api/contracts/' + id);
+  const listContracts = () => jsonFetch('/api/contracts');
+  function createConversation(contractId, title) {
+    return jsonFetch('/api/contracts/' + contractId + '/conversations', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title }),
+    });
+  }
+
+  /* ---- 流式对话 (SSE over fetch) ---- */
+  async function streamChat(conversationId, text, { onToken, onDone, onError } = {}) {
+    try {
+      const res = await fetch(base + '/api/conversations/' + conversationId + '/messages', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok || !res.body) throw new Error('HTTP ' + res.status);
+      const reader = res.body.getReader();
+      const dec = new TextDecoder('utf-8');
+      let buf = '';
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let i;
+        while ((i = buf.indexOf('\n\n')) >= 0) {
+          const chunk = buf.slice(0, i); buf = buf.slice(i + 2);
+          const line = chunk.split('\n').find((l) => l.startsWith('data:'));
+          if (!line) continue;
+          let ev; try { ev = JSON.parse(line.slice(5).trim()); } catch { continue; }
+          if (ev.type === 'token') onToken && onToken(ev.v);
+          else if (ev.type === 'done') onDone && onDone(ev);
+          else if (ev.type === 'error') onError && onError(new Error(ev.message));
+        }
+      }
+    } catch (e) {
+      onError && onError(e);
+    }
+  }
+
+  return {
+    health, ready,
+    uploadFile, uploadText, sampleContract, review,
+    getContract, listContracts, createConversation, streamChat,
+    get online() { return STATE.online; },
+    get live() { return STATE.live; },
+    get base() { return base; },
+  };
+})();
+
+/* 启动即探测后端 (不阻塞渲染) */
+window.API.health();

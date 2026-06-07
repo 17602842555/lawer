@@ -1,0 +1,43 @@
+/* ====================================================================
+   TWEAKS PANEL  ·  vanilla, follows host edit-mode protocol
+   ==================================================================== */
+#tweaks{
+  position:fixed;top:0;right:0;height:100vh;width:300px;z-index:80;
+  background:color-mix(in srgb,var(--bg) 86%,transparent);
+  backdrop-filter:blur(20px) saturate(1.2);
+  border-left:1px solid var(--hair);
+  box-shadow:-20px 0 60px rgba(0,0,0,.3);
+  transform:translateX(105%);transition:transform .4s var(--ease);
+  display:flex;flex-direction:column;color:var(--ink);
+  font-family:var(--sans);
+}
+#tweaks.open{transform:none}
+.tw-head{display:flex;align-items:center;justify-content:space-between;padding:20px 22px 16px;border-bottom:1px solid var(--hair)}
+.tw-head .tt{font-family:var(--serif);font-weight:600;font-size:16px;letter-spacing:-.01em}
+.tw-head .ts{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+.tw-x{width:30px;height:30px;border-radius:8px;border:1px solid var(--hair);background:transparent;color:var(--muted);
+  cursor:pointer;display:grid;place-items:center;transition:.2s}
+.tw-x:hover{color:var(--ink);border-color:var(--faint)}
+.tw-x svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2}
+.tw-body{flex:1;overflow-y:auto;padding:8px 22px 30px}
+.tw-sec{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);
+  margin:24px 0 12px}
+.tw-row{margin-bottom:16px}
+.tw-lbl{font-size:13px;color:var(--ink-2);margin-bottom:9px}
+
+.tw-seg{display:flex;gap:4px;background:var(--panel-2);border:1px solid var(--hair);border-radius:10px;padding:4px}
+.tw-seg button{flex:1;font-family:var(--sans);font-size:12.5px;color:var(--muted);background:transparent;border:0;
+  cursor:pointer;padding:8px 6px;border-radius:7px;transition:.2s;white-space:nowrap}
+.tw-seg button:hover{color:var(--ink)}
+.tw-seg button.on{color:var(--ink);background:var(--acc-soft);box-shadow:inset 0 0 0 1px var(--acc-line)}
+
+.tw-swatches{display:flex;gap:10px}
+.tw-sw{flex:1;height:38px;border-radius:10px;cursor:pointer;border:2px solid transparent;position:relative;
+  transition:transform .2s,border-color .2s}
+.tw-sw:hover{transform:translateY(-2px)}
+.tw-sw.on{border-color:var(--ink)}
+.tw-sw::after{content:"";position:absolute;inset:0;border-radius:8px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+
+.tw-note{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:6px}
+.tw-foot{padding:14px 22px;border-top:1px solid var(--hair);font-family:var(--mono);font-size:10px;
+  letter-spacing:.1em;color:var(--muted);text-transform:uppercase;text-align:center}

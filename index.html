@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark" data-density="minimal" data-motion="cinematic">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- 后端 API 地址: 同源留空; 分离部署(GitHub Pages + NAS/隧道)时填后端 URL, 或用 ?api=<url> 临时切换 -->
+<meta name="api-base" content="">
+<title>顶级律师 AGENT · 智能合同审核</title>
+<link rel="stylesheet" href="assets/css/core.css">
+<link rel="stylesheet" href="assets/css/home.css">
+<link rel="stylesheet" href="assets/css/flow.css">
+<link rel="stylesheet" href="assets/css/report.css">
+<link rel="stylesheet" href="assets/css/workspace.css">
+<link rel="stylesheet" href="assets/css/dashboard.css">
+<link rel="stylesheet" href="assets/css/tweaks.css">
+</head>
+<body>
+
+<!-- ============ BACKGROUND ============ -->
+<div id="stage" class="mode-particles"><canvas id="fx"></canvas><div id="ambient"></div></div>
+<div id="beam"></div>
+<div id="prog"></div>
+
+<!-- ============ TOP NAV ============ -->
+<header class="topbar">
+  <div class="brand">
+    <span class="mark"><i></i><i></i></span>
+    <span class="name">顶级律师<b>AGENT</b></span>
+  </div>
+  <nav class="nav">
+    <a data-scroll="#view-home .features">核心能力</a>
+    <a data-scroll="#view-home .pricing">价格</a>
+    <a data-go="dashboard">合同管理</a>
+    <a class="nav-cta" data-scroll="#view-home .upload-section">立即审核</a>
+  </nav>
+</header>
+
+<div id="viewport">
+
+  <!-- ============ HOME ============ -->
+  <section id="view-home" class="view active" data-screen-label="首页">
+
+    <!-- hero -->
+    <section class="hero" data-screen-label="首页 · 英雄区">
+      <div id="heroTag">
+        <div class="h-kicker">Top-Tier Legal Agent</div>
+        <h1 class="h-head">顶级律师<span class="en">AGENT</span><br>为你保驾护航</h1>
+        <div class="h-sub">智能合同审核 · AI Contract Review</div>
+        <div class="h-cta">
+          <button class="btn" data-scroll="#view-home .upload-section">上传合同 · 立即审核</button>
+          <button class="btn ghost" data-go="report">查看示例报告</button>
+        </div>
+      </div>
+      <button class="scroll-cue" id="cue" aria-label="向下滚动">
+        <span class="cue-t">向下了解</span><span class="cue-a"></span>
+      </button>
+    </section>
+
+    <!-- capabilities -->
+    <section class="section features" data-screen-label="核心能力">
+      <div class="container">
+        <div class="sec-head center reveal">
+          <div class="kicker center">Capabilities · 核心能力</div>
+          <h2 class="sec-title">像顶级律师一样，逐条审视每一份合同</h2>
+          <p class="sec-lead">AGENT 在数秒内通读全文，定位高风险条款，给出有判例与法规支撑的修改建议——把数小时的人工审阅，压缩到一杯咖啡的时间。</p>
+        </div>
+        <div class="cards">
+          <article class="card reveal">
+            <span class="card-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg></span>
+            <h3>逐条风险审查</h3>
+            <p>自动定位违约金、责任限制、争议解决等条款，标注「通过 / 风险」并说明判定依据。</p>
+          </article>
+          <article class="card reveal">
+            <span class="card-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+            <h3>判例法规对标</h3>
+            <p>对照现行法律法规与海量判例，给出可落地、可执行的条款修改建议。</p>
+          </article>
+          <article class="card reveal">
+            <span class="card-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg></span>
+            <h3>中英双语合同</h3>
+            <p>支持中文、英文及跨境协议的智能审阅，术语与表述一并校准。</p>
+          </article>
+          <article class="card reveal">
+            <span class="card-ic"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+            <h3>端到端加密</h3>
+            <p>文件仅用于本次审核，全程加密、不留存、过程可追溯。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- stats -->
+    <section class="section" style="padding-top:0" data-screen-label="数据">
+      <div class="container reveal">
+        <div class="stats-strip">
+          <div class="stat-cell"><div class="num">120,000+</div><div class="lbl">已审合同</div></div>
+          <div class="stat-cell"><div class="num">38 秒</div><div class="lbl">平均审阅耗时</div></div>
+          <div class="stat-cell"><div class="num">99.2%</div><div class="lbl">高风险召回率</div></div>
+          <div class="stat-cell"><div class="num">¥2.4 亿</div><div class="lbl">规避潜在损失</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- how -->
+    <section class="section how" data-screen-label="使用流程">
+      <div class="container">
+        <div class="sec-head center reveal">
+          <div class="kicker center">How it works · 三步完成</div>
+          <h2 class="sec-title">上传 · 审视 · 获取报告</h2>
+        </div>
+        <div class="steps">
+          <div class="step reveal"><div class="step-n">01</div><div class="step-t">上传合同</div><div class="step-d">拖拽或选择 PDF / Word 文件，或直接试用示例合同。</div></div>
+          <div class="step-line reveal"></div>
+          <div class="step reveal"><div class="step-n">02</div><div class="step-t">AI 审视</div><div class="step-d">秒级扫描，逐条比对法规与判例并完成风险定级。</div></div>
+          <div class="step-line reveal"></div>
+          <div class="step reveal"><div class="step-n">03</div><div class="step-t">获取报告</div><div class="step-d">风险清单 + 改写建议，可逐条审阅、一键导出。</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- cases -->
+    <section class="section" data-screen-label="客户案例">
+      <div class="container">
+        <div class="sec-head center reveal">
+          <div class="kicker center">In the field · 真实案例</div>
+          <h2 class="sec-title">创业者最信赖的合同军师</h2>
+        </div>
+        <div class="cases">
+          <div class="case reveal">
+            <div class="mark-q">”</div>
+            <div class="ctag">SaaS 创业公司</div>
+            <div class="quote">AGENT 在投资协议里揪出一条对赌回购的隐藏触发条件，帮我们省下了一轮可能的天价回购。</div>
+            <div class="who">李航 · 创始人</div>
+          </div>
+          <div class="case reveal">
+            <div class="mark-q">”</div>
+            <div class="ctag">跨境电商</div>
+            <div class="quote">以前一份英文条款要等律师两天，现在三十秒拿到中文风险清单，谈判节奏完全不一样了。</div>
+            <div class="who">Vivian · 运营负责人</div>
+          </div>
+          <div class="case reveal">
+            <div class="mark-q">”</div>
+            <div class="ctag">连锁餐饮</div>
+            <div class="quote">租赁合同里的自动续约和违约金，被它一眼标红。对非法律背景的我太友好了。</div>
+            <div class="who">王磊 · 区域经理</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- pricing -->
+    <section class="section pricing" data-screen-label="价格方案">
+      <div class="container">
+        <div class="sec-head center reveal">
+          <div class="kicker center">Pricing · 简单透明</div>
+          <h2 class="sec-title">从第一份合同开始，免费</h2>
+        </div>
+        <div class="plans">
+          <div class="plan reveal">
+            <div class="pname">体验</div>
+            <div class="pprice">¥0<em>/ 永久</em></div>
+            <div class="pdesc">适合偶尔审一份合同</div>
+            <ul class="feats">
+              <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>每月 3 份合同</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>核心风险标注</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>基础修改建议</li>
+            </ul>
+            <button class="btn ghost" data-scroll="#view-home .upload-section">免费开始</button>
+          </div>
+          <div class="plan hot reveal">
+            <div class="ribbon">最受欢迎</div>
+            <div class="pname">专业</div>
+            <div class="pprice">¥199<em>/ 月</em></div>
+            <div class="pdesc">高频签约的创业团队首选</div>
+            <ul class="feats">
+              <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>不限合同份数</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>判例 + 法规对标</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>逐条改写与原文标注</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>中英双语 · 跨境协议</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>导出审核报告 PDF</li>
+            </ul>
+            <button class="btn" data-scroll="#view-home .upload-section">升级专业版</button>
+          </div>
+          <div class="plan reveal">
+            <div class="pname">企业</div>
+            <div class="pprice">定制</div>
+            <div class="pdesc">团队协作与合规留痕</div>
+            <ul class="feats">
+              <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>多成员 · 权限管理</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>合同库与版本对比</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>私有部署 · 数据隔离</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>专属法务顾问支持</li>
+            </ul>
+            <button class="btn ghost" data-go="dashboard">联系我们</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- upload -->
+    <section class="section upload-section" data-screen-label="上传合同">
+      <div class="container up-wrap reveal">
+        <div class="kicker center">Start Review · 开始审核</div>
+        <h2 class="up-title">把合同交给顶级律师 AGENT</h2>
+        <div class="uploader">
+          <div class="dropzone" id="dz">
+            <div class="dz-ico"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 16v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg></div>
+            <div class="dz-main">拖拽合同到此处，或 <em>点击上传</em></div>
+            <div class="dz-sub">PDF · DOCX · DOC</div>
+          </div>
+          <div class="up-samples">
+            <button class="sample-chip" data-file="技术服务合作协议（终稿）.pdf"><svg viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>试用：技术服务协议</button>
+            <button class="sample-chip" data-file="股权代持协议.pdf"><svg viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>试用：股权代持协议</button>
+          </div>
+          <div class="up-hint">您的文件仅用于本次审核 · 端到端加密</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- footer -->
+    <footer class="foot">
+      <div class="container">
+        <div class="brand"><span class="mark"><i></i><i></i></span><span class="name">顶级律师<b>AGENT</b></span></div>
+        <div class="f-links">
+          <a data-scroll="#view-home .features">能力</a>
+          <a data-scroll="#view-home .pricing">价格</a>
+          <a data-go="dashboard">合同管理</a>
+        </div>
+        <div class="f-copy">© 2026 顶级律师 AGENT · 智能合同审核</div>
+      </div>
+    </footer>
+  </section>
+
+  <!-- ============ REPORT ============ -->
+  <section id="view-report" class="view" data-screen-label="审核报告"></section>
+
+  <!-- ============ WORKSPACE ============ -->
+  <section id="view-workspace" class="view" data-screen-label="逐条审阅"></section>
+
+  <!-- ============ DASHBOARD ============ -->
+  <section id="view-dashboard" class="view" data-screen-label="合同管理"></section>
+
+</div>
+
+<!-- scan overlay -->
+<div id="overlay"></div>
+<input type="file" id="file" accept=".pdf,.doc,.docx" hidden>
+
+<template id="__bundler_thumbnail" data-bg-color="#07090d">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#07090d"/>
+    <g transform="translate(600 400)">
+      <rect x="-26" y="-26" width="52" height="52" transform="rotate(45)" fill="none" stroke="#eef1f7" stroke-width="3"/>
+      <rect x="-13" y="-13" width="26" height="26" transform="rotate(45)" fill="none" stroke="#8b6cff" stroke-width="3"/>
+    </g>
+    <rect x="430" y="470" width="340" height="6" rx="3" fill="url(#g)"/>
+    <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#4a7dff"/><stop offset="1" stop-color="#8b6cff"/></linearGradient></defs>
+  </svg>
+</template>
+
+<!-- scripts: api → data → engines → modules → app (boot last) -->
+<script src="assets/js/api.js"></script>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/bg.js"></script>
+<script src="assets/js/hero.js"></script>
+<script src="assets/js/flow.js"></script>
+<script src="assets/js/report.js"></script>
+<script src="assets/js/workspace.js"></script>
+<script src="assets/js/dashboard.js"></script>
+<script src="assets/js/tweaks.js"></script>
+<script src="assets/js/app.js"></script>
+
+</body>
+</html>

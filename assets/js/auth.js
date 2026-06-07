@@ -109,12 +109,25 @@ window.AUTH = (function () {
     return false;
   }
 
+  /* 后端连不上时显示明显提示条 (避免"悄悄变演示") */
+  function offlineBanner(show) {
+    let b = document.getElementById('offlineBar');
+    if (!show) { if (b) b.remove(); return; }
+    if (b) return;
+    b = document.createElement('div');
+    b.id = 'offlineBar';
+    b.innerHTML = `<span>⚠ 未连接到后端服务，当前无法进行真实审核。请确认后端地址/网络。</span>`;
+    document.body.appendChild(b);
+  }
+
   /* ---------- 启动 ---------- */
   async function init() {
     buildGate();
     ensureNavSlot();
     setMode('login');
     updateNav();                 // 右上角先显示「登录」按钮 (不自动弹门)
+    await API.ready();           // 确保已探测后端
+    offlineBanner(!STATE.online);
     await API.me();              // 有令牌则校验, 恢复登录态
     updateNav();
     // 访问受保护接口遇 401 → 弹登录门

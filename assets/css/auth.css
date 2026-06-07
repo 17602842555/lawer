@@ -84,3 +84,10 @@
   .nav-user .nu-name{max-width:90px}
   .nav .nav-user .nu-login{display:inline-flex !important}
 }
+
+/* 未连接后端提示条 */
+#offlineBar{
+  position:fixed;left:0;right:0;bottom:0;z-index:150;text-align:center;
+  padding:10px 16px;font-size:13px;color:#fff;
+  background:linear-gradient(90deg,#b3324a,#e0556f);box-shadow:0 -6px 24px rgba(0,0,0,.3);
+}

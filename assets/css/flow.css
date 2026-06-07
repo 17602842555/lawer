@@ -69,3 +69,19 @@
 @keyframes docExit{to{opacity:0;transform:scale(.86) translateY(10px);filter:blur(10px)}}
 
 [data-motion="off"] .scanbeam,[data-motion="off"] .marker{animation:none;opacity:1}
+
+/* ---------- 解析/分析失败提示 ---------- */
+.scan-error{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:min(440px,88vw);text-align:center;
+  background:var(--panel);border:1px solid var(--hair);border-radius:22px;
+  padding:38px 34px;box-shadow:var(--shadow-card),0 0 0 1px var(--acc-soft);backdrop-filter:blur(16px);
+  display:flex;flex-direction:column;align-items:center;gap:14px;
+  animation:authRise .5s var(--ease) both;
+}
+.scan-error .se-ic{width:54px;height:54px;border-radius:14px;display:grid;place-items:center;
+  background:color-mix(in srgb,var(--risk-high) 16%,transparent);border:1px solid color-mix(in srgb,var(--risk-high) 40%,transparent)}
+.scan-error .se-ic svg{width:26px;height:26px;color:var(--risk-high)}
+.scan-error .se-t{font-family:var(--serif);font-size:20px;font-weight:600;letter-spacing:-.01em}
+.scan-error .se-d{font-size:14px;color:var(--ink-2);line-height:1.75;text-wrap:pretty}
+.scan-error .btn{margin-top:8px}

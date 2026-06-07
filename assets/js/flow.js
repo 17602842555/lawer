@@ -69,7 +69,10 @@ window.FLOW = (function(){
       let done=false; work.then(()=>done=true,()=>done=true);
       // 后端仍在审核 → 显示「整理结果」提示, 就绪/超时后再进入
       setTimeout(()=>{ if(!done && chip) chip.innerHTML=`<span class="fdot"></span>正在整理审核结果…`; },300);
-      Promise.race([ work.catch(()=>null), wait(15000) ]).then(()=>finish(fileName));
+      Promise.race([ work.catch(()=>null), wait(30000) ]).then(()=>{
+        if(window.STATE && STATE.flowError){ showError(STATE.flowError); return; }
+        finish(fileName);
+      });
     });
   }
 
@@ -83,25 +86,46 @@ window.FLOW = (function(){
     APP.go('workspace',{ file:fileName });
   }
 
-  /* 后端流程: 上传/示例 → 审核 → 建会话; 任一步失败则回退本地演示 (STATE.contract=null) */
+  /* 解析/分析失败: 明确告知, 不展示假结果 */
+  function showError(msg){
+    clear();
+    overlay.classList.add('on');
+    document.documentElement.classList.add('locked');
+    overlay.innerHTML=`
+      <div class="scan-error">
+        <div class="se-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></div>
+        <div class="se-t">无法分析这份合同</div>
+        <div class="se-d">${esc(msg||'处理失败，请重试。')}</div>
+        <button class="btn" id="seClose">知道了</button>
+      </div>`;
+    overlay.querySelector('#seClose').addEventListener('click',()=>{
+      overlay.classList.remove('on'); overlay.innerHTML='';
+      document.documentElement.classList.remove('locked');
+      window.STATE.flowError=null;
+      APP.go('home');
+    });
+  }
+
+  /* 后端流程: 上传/示例 → 审核 → 建会话; 失败则记录错误供 showError 展示 */
   async function prepareContract(fileName, opts){
-    window.STATE.contract=null; window.STATE.conversationId=null;
+    window.STATE.contract=null; window.STATE.conversationId=null; window.STATE.flowError=null;
     try{
       await API.ready();
-      if(!API.online) return null;
+      if(!API.online){ window.STATE.flowError='后端服务未连接。请检查网络或后端地址。'; return null; }
       let contract=null;
       if(opts.sampleKey){ const r=await API.sampleContract(opts.sampleKey); contract={ id:r.id, filename:r.filename, ...r.review }; }
       else if(opts.fileObj){ const up=await API.uploadFile(opts.fileObj); contract=await API.review(up.id); }
       else if(opts.contractId){ contract=await API.getContract(opts.contractId); }
       else return null;
-      if(!contract||!Array.isArray(contract.clauses)||!contract.clauses.length) return null;
+      if(!contract||!Array.isArray(contract.clauses)||!contract.clauses.length){ window.STATE.flowError='审核结果为空，请重试。'; return null; }
       window.STATE.contract=contract;
       const conv=await API.createConversation(contract.id);
       window.STATE.conversationId=conv.conversationId;
       return contract;
     }catch(e){
-      console.warn('[flow] 准备合同失败, 回退本地演示:', e.message);
+      console.warn('[flow] 准备合同失败:', e.message);
       window.STATE.contract=null; window.STATE.conversationId=null;
+      window.STATE.flowError=e.message||'处理失败，请重试。';
       return null;
     }
   }

@@ -4,7 +4,7 @@
    ==================================================================== */
 window.WORKSPACE = (function(){
   let D=window.DATA;                 // 渲染时切换为 ACTIVE()
-  let mountEl, built=false, curId=null, sending=false, lastContractId=null;
+  let mountEl, built=false, curId=null, sending=false, lastContractId=null, lastConversationId=null;
 
   const ic = {
     send:'<path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/>',
@@ -94,11 +94,31 @@ window.WORKSPACE = (function(){
 
     wire();
     fillRight();
-    // intro messages
-    greet();
+    // 恢复历史对话 or 首次问候
+    if(window.STATE && STATE.resume && STATE.conversationId){ STATE.resume=false; loadHistory(); }
+    else greet();
     // default current clause = first high risk
     const first=D.CLAUSES.find(c=>c.sev==='high');
     if(first) selectClause(first.id,{silent:true});
+  }
+
+  /* 从云端加载该会话历史消息 (恢复对话) */
+  async function loadHistory(){
+    try{
+      const msgs = await API.getMessages(STATE.conversationId);
+      if(!msgs || !msgs.length){ greet(); return; }
+      msgs.forEach(m=>{
+        if(m.role==='user'){ addMsg('user', esc(m.content)); return; }
+        const node=addMsg('agent', mdToHtml(m.content));
+        const cites=(m.meta && m.meta.cites) || [];
+        if(cites.length){
+          const wrap=document.createElement('div'); wrap.className='cites';
+          wrap.innerHTML=cites.map(serverCite).join('');
+          node.querySelector('.bubble').appendChild(wrap); wireCites(wrap);
+        }
+      });
+      chatEl().scrollTop=chatEl().scrollHeight;
+    }catch(e){ console.warn('[ws] 加载历史失败:', e.message); greet(); }
   }
 
   function quickIcon(k){
@@ -336,8 +356,11 @@ window.WORKSPACE = (function(){
   function init(){
     mountEl=document.getElementById('view-workspace');
     APP.onEnter('workspace',()=>{
-      const id=(window.STATE&&STATE.contract&&STATE.contract.id)||'demo';
-      if(!built || id!==lastContractId){ lastContractId=id; render(); built=true; }
+      const conKey=(window.STATE&&STATE.contract&&STATE.contract.id)||'demo';
+      const cidKey=(window.STATE&&STATE.conversationId)||'';
+      if(!built || conKey!==lastContractId || cidKey!==lastConversationId || (window.STATE&&STATE.resume)){
+        lastContractId=conKey; lastConversationId=cidKey; render(); built=true;
+      }
     });
   }
   return { init };

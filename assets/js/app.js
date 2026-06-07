@@ -76,6 +76,7 @@ window.APP = (function(){
 
   function boot(){
     BG.init(); BG.start();
+    AUTH.init();
     wireNav();
     HERO.init();
     FLOW.init();

@@ -4,7 +4,7 @@
    - window.ACTIVE(): 当前数据源 (真实合同 → STATE.contract; 否则回退 DATA mock)
    - 后端不可用 / 未配置模型时, 前端自动降级为本地 mock, 页面始终可用
    ==================================================================== */
-window.STATE = { contract: null, conversationId: null, live: false, online: false };
+window.STATE = { contract: null, conversationId: null, live: false, online: false, user: null };
 
 /* 当前生效的数据集: 真实审核结果 or 内置演示数据 (DATA) */
 window.ACTIVE = function () {
@@ -42,8 +42,25 @@ window.API = (function () {
   const base = resolveBase();
   let healthDone = false;
 
-  async function jsonFetch(url, opts) {
+  /* ---- 令牌 ---- */
+  const TOKEN_KEY = 'authToken';
+  const getToken = () => { try { return localStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; } };
+  const setToken = (t) => { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch {} };
+  function authHeaders(extra) {
+    const h = Object.assign({}, extra || {});
+    const t = getToken();
+    if (t) h.Authorization = 'Bearer ' + t;
+    return h;
+  }
+  function onUnauthorized() {
+    setToken(''); STATE.user = null;
+    window.dispatchEvent(new CustomEvent('auth:required'));
+  }
+
+  async function jsonFetch(url, opts = {}) {
+    opts.headers = authHeaders(opts.headers);
     const res = await fetch(base + url, opts);
+    if (res.status === 401) { onUnauthorized(); throw new Error('未登录'); }
     if (!res.ok) {
       let msg = res.status + '';
       try { msg = (await res.json()).error || msg; } catch {}
@@ -51,6 +68,36 @@ window.API = (function () {
     }
     return res.json();
   }
+
+  /* ---- 鉴权 ---- */
+  async function register(email, password, name) {
+    const r = await jsonFetch('/api/auth/register', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, name }),
+    });
+    setToken(r.token); STATE.user = r.user; return r.user;
+  }
+  async function login(email, password) {
+    const r = await jsonFetch('/api/auth/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    setToken(r.token); STATE.user = r.user; return r.user;
+  }
+  async function logout() {
+    try { await fetch(base + '/api/auth/logout', { method: 'POST', headers: authHeaders() }); } catch {}
+    setToken(''); STATE.user = null;
+  }
+  async function me() {
+    if (!getToken()) { STATE.user = null; return null; }
+    try {
+      const res = await fetch(base + '/api/auth/me', { headers: authHeaders() });
+      if (!res.ok) { if (res.status === 401) setToken(''); STATE.user = null; return null; }
+      const d = await res.json(); STATE.user = d.user; return d.user;
+    } catch { STATE.user = null; return null; }
+  }
+  const listConversations = () => jsonFetch('/api/conversations');
+  const getMessages = (cid) => jsonFetch('/api/conversations/' + cid + '/messages');
 
   /* ---- 健康检查: 后端是否在线 / 是否接入真实模型 ---- */
   async function health() {
@@ -99,9 +146,10 @@ window.API = (function () {
   async function streamChat(conversationId, text, { onToken, onDone, onError } = {}) {
     try {
       const res = await fetch(base + '/api/conversations/' + conversationId + '/messages', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ text }),
       });
+      if (res.status === 401) { onUnauthorized(); throw new Error('未登录'); }
       if (!res.ok || !res.body) throw new Error('HTTP ' + res.status);
       const reader = res.body.getReader();
       const dec = new TextDecoder('utf-8');
@@ -128,10 +176,14 @@ window.API = (function () {
 
   return {
     health, ready,
+    register, login, logout, me,
     uploadFile, uploadText, sampleContract, review,
     getContract, listContracts, createConversation, streamChat,
+    listConversations, getMessages,
     get online() { return STATE.online; },
     get live() { return STATE.live; },
+    get user() { return STATE.user; },
+    get token() { return getToken(); },
     get base() { return base; },
   };
 })();

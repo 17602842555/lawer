@@ -1,0 +1,74 @@
+/* ====================================================================
+   AUTH · 登录门 + 顶栏登录态
+   ==================================================================== */
+#authGate{
+  position:fixed;inset:0;z-index:200;display:none;place-items:center;padding:24px;
+  background:color-mix(in srgb,var(--bg) 78%,transparent);
+  backdrop-filter:blur(14px) saturate(1.1);
+  animation:authFade .4s ease both;
+}
+#authGate.open{display:grid}
+@keyframes authFade{from{opacity:0}to{opacity:1}}
+
+.auth-card{
+  width:min(400px,92vw);
+  background:var(--panel);border:1px solid var(--hair);border-radius:22px;
+  padding:34px 30px;box-shadow:var(--shadow-card),0 0 0 1px var(--acc-soft);
+  backdrop-filter:blur(16px);
+  animation:authRise .5s var(--ease) both;
+}
+@keyframes authRise{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+
+.auth-brand{display:flex;align-items:center;gap:11px;justify-content:center;margin-bottom:18px}
+.auth-brand .mark{width:22px;height:22px;position:relative;flex:none}
+.auth-brand .mark i{position:absolute;inset:0;border:1.5px solid var(--ink);transform:rotate(45deg)}
+.auth-brand .mark i:nth-child(2){inset:5px;border-color:var(--acc-2);opacity:.85}
+.auth-brand .name{font-family:var(--serif);font-weight:600;font-size:16px}
+.auth-brand .name b{color:var(--muted);font-family:var(--mono);font-weight:400;font-size:11px;letter-spacing:.24em;margin-left:8px}
+
+.auth-h{text-align:center;color:var(--ink-2);font-size:13.5px;margin-bottom:22px}
+
+.auth-tabs{display:flex;gap:4px;background:var(--panel-2);border:1px solid var(--hair);border-radius:999px;padding:4px;margin-bottom:22px}
+.auth-tabs button{
+  flex:1;padding:9px 0;border:0;border-radius:999px;background:transparent;color:var(--muted);
+  font-family:var(--sans);font-size:13.5px;font-weight:500;cursor:pointer;transition:color .2s,background .2s;
+}
+.auth-tabs button.on{color:#fff;background:var(--grad);box-shadow:0 6px 18px var(--acc-glow)}
+
+.auth-form{display:flex;flex-direction:column;gap:14px}
+.af-row{display:flex;flex-direction:column;gap:7px}
+.af-row span{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+.af-row input{
+  width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--hair);
+  background:var(--panel-2);color:var(--ink);font-family:var(--sans);font-size:14px;
+  transition:border-color .2s,box-shadow .2s;
+}
+.af-row input:focus{outline:0;border-color:var(--acc-line);box-shadow:0 0 0 3px var(--acc-soft)}
+.af-row input::placeholder{color:var(--muted)}
+
+/* 登录模式隐藏“称呼” */
+.only-register{display:none}
+#authGate.is-register .only-register{display:flex}
+
+.auth-err{min-height:18px;font-size:12.5px;color:var(--risk-high);line-height:1.4}
+.auth-submit{justify-content:center;margin-top:4px}
+.auth-submit:disabled{opacity:.7;cursor:default;transform:none}
+.auth-foot{margin-top:18px;text-align:center;font-size:11.5px;color:var(--muted);line-height:1.6}
+
+/* ---------- 顶栏登录态 ---------- */
+.nav-user{display:flex;align-items:center;gap:10px;margin-left:8px}
+.nav-user .nu-login{
+  font-size:13.5px;color:var(--ink-2);padding:9px 15px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--hair);transition:color .2s,border-color .2s;
+}
+.nav-user .nu-login:hover{color:var(--ink);border-color:var(--faint)}
+.nav-user .nu-name{
+  font-size:13px;color:var(--ink-2);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  padding:7px 12px;border-radius:999px;background:var(--acc-soft);border:1px solid var(--acc-line);
+}
+.nav-user .nu-out{
+  font-family:var(--sans);font-size:12.5px;color:var(--muted);background:transparent;border:0;cursor:pointer;
+  padding:7px 4px;transition:color .2s;
+}
+.nav-user .nu-out:hover{color:var(--ink)}
+@media (max-width:760px){.nav-user .nu-name{max-width:90px}}

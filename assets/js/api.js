@@ -27,17 +27,20 @@ window.API = (function () {
   /* API 基地址解析(优先级): ?api=<url> (访问一次即记住) → localStorage → <meta name="api-base"> → 同源
      用于「前端 GitHub Pages + 后端 NAS/隧道」的分离部署; 临时隧道 URL 会变, 用 ?api= 切换即可 */
   function resolveBase() {
-    try {
-      const q = new URL(location.href).searchParams.get('api');
-      if (q !== null) {
-        if (q) localStorage.setItem('apiBase', q.replace(/\/+$/, ''));
-        else localStorage.removeItem('apiBase');
-      }
-    } catch {}
-    let b = '';
-    try { b = localStorage.getItem('apiBase') || ''; } catch {}
-    if (!b) { const m = document.querySelector('meta[name="api-base"]'); if (m && m.content) b = m.content.trim(); }
-    return b.replace(/\/+$/, '');
+    // 1) ?api= 显式覆盖(并记住, 供调试)
+    let q = null;
+    try { q = new URL(location.href).searchParams.get('api'); } catch {}
+    if (q !== null) {
+      const v = q.replace(/\/+$/, '');
+      try { v ? localStorage.setItem('apiBase', v) : localStorage.removeItem('apiBase'); } catch {}
+      if (v) return v;
+    }
+    // 2) 烘焙进页面的后端地址(部署默认, 已知可用, 优先于旧的 localStorage)
+    const m = document.querySelector('meta[name="api-base"]');
+    if (m && m.content && m.content.trim()) return m.content.trim().replace(/\/+$/, '');
+    // 3) 上次 ?api 记住的
+    try { const b = localStorage.getItem('apiBase'); if (b) return b.replace(/\/+$/, ''); } catch {}
+    return '';
   }
   const base = resolveBase();
   let healthDone = false;

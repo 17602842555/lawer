@@ -13,6 +13,7 @@ window.AUTH = (function () {
     gate.id = 'authGate';
     gate.innerHTML = `
       <div class="auth-card">
+        <button class="auth-x" aria-label="关闭"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
         <div class="auth-brand"><span class="mark"><i></i><i></i></span><span class="name">顶级律师<b>AGENT</b></span></div>
         <div class="auth-h">登录以使用智能合同审核</div>
         <div class="auth-tabs">
@@ -34,6 +35,10 @@ window.AUTH = (function () {
     gate.querySelectorAll('.auth-tabs button').forEach(b =>
       b.addEventListener('click', () => setMode(b.dataset.t)));
     form.addEventListener('submit', submit);
+    // 关闭: X / 点背景 / ESC
+    gate.querySelector('.auth-x').addEventListener('click', close);
+    gate.addEventListener('click', (e) => { if (e.target === gate) close(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && gate.classList.contains('open')) close(); });
   }
 
   function setMode(m) {
@@ -97,19 +102,24 @@ window.AUTH = (function () {
     window.dispatchEvent(new CustomEvent('auth:changed', { detail: { user: null } }));
   }
 
+  /* 需要登录才能继续: 已登录返回 true; 否则弹登录门并返回 false */
+  function require() {
+    if (window.STATE && STATE.user) return true;
+    open();
+    return false;
+  }
+
   /* ---------- 启动 ---------- */
   async function init() {
     buildGate();
     ensureNavSlot();
     setMode('login');
-    // 有令牌则乐观放行, 校验失败再弹门; 无令牌直接弹门
-    if (!API.token) { open(); updateNav(); }
-    const u = await API.me();
+    updateNav();                 // 右上角先显示「登录」按钮 (不自动弹门)
+    await API.me();              // 有令牌则校验, 恢复登录态
     updateNav();
-    if (!u) open(); else close();
-    // 任意请求 401 → 重新弹门
+    // 访问受保护接口遇 401 → 弹登录门
     window.addEventListener('auth:required', () => { updateNav(); open(); });
   }
 
-  return { init, open, close };
+  return { init, open, close, require };
 })();

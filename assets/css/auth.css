@@ -11,12 +11,19 @@
 @keyframes authFade{from{opacity:0}to{opacity:1}}
 
 .auth-card{
+  position:relative;
   width:min(400px,92vw);
   background:var(--panel);border:1px solid var(--hair);border-radius:22px;
   padding:34px 30px;box-shadow:var(--shadow-card),0 0 0 1px var(--acc-soft);
   backdrop-filter:blur(16px);
   animation:authRise .5s var(--ease) both;
 }
+.auth-x{
+  position:absolute;top:14px;right:14px;width:32px;height:32px;display:grid;place-items:center;
+  border:0;border-radius:9px;background:transparent;color:var(--muted);cursor:pointer;transition:color .2s,background .2s;
+}
+.auth-x:hover{color:var(--ink);background:color-mix(in srgb,var(--ink) 6%,transparent)}
+.auth-x svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 @keyframes authRise{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
 
 .auth-brand{display:flex;align-items:center;gap:11px;justify-content:center;margin-bottom:18px}
@@ -71,4 +78,9 @@
   padding:7px 4px;transition:color .2s;
 }
 .nav-user .nu-out:hover{color:var(--ink)}
-@media (max-width:760px){.nav-user .nu-name{max-width:90px}}
+/* 登录按钮在移动端也要显示 (覆盖 core.css 对 .nav a 的隐藏) */
+@media (max-width:760px){
+  .nav-user{margin-left:0}
+  .nav-user .nu-name{max-width:90px}
+  .nav .nav-user .nu-login{display:inline-flex !important}
+}

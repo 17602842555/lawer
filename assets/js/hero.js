@@ -77,17 +77,19 @@ window.HERO = (function(){
     const dz=document.getElementById('dz');
     const pick=document.getElementById('pick');
     const fileInput=document.getElementById('file');
-    const open=()=>fileInput.click();
+    const guard=()=>!(window.AUTH) || AUTH.require();   // 未登录 → 弹登录门, 返回 false
+    const open=()=>{ if(!guard()) return; fileInput.click(); };
     dz.addEventListener('click',open);
     if(pick) pick.addEventListener('click',open);
-    fileInput.onchange=(e)=>{const f=e.target.files[0];if(f){FLOW.start(f.name,{fileObj:f});fileInput.value='';}};
+    fileInput.onchange=(e)=>{const f=e.target.files[0];if(f){if(!guard())return;FLOW.start(f.name,{fileObj:f});fileInput.value='';}};
     ['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('drag');}));
     ['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('drag');}));
-    dz.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];FLOW.start(f?f.name:'未命名合同.pdf',{fileObj:f});});
+    dz.addEventListener('drop',e=>{if(!guard())return;const f=e.dataTransfer.files[0];FLOW.start(f?f.name:'未命名合同.pdf',{fileObj:f});});
 
     // sample chips → 后端内置范本
     document.querySelectorAll('.sample-chip').forEach(ch=>{
       ch.addEventListener('click',()=>{
+        if(!guard()) return;
         const name=ch.dataset.file||'示例合同.pdf';
         const sampleKey=/股权|代持/.test(name)?'equity':'technical';
         FLOW.start(name,{sampleKey});

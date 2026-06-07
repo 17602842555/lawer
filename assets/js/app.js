@@ -17,8 +17,10 @@ window.APP = (function(){
     });
   }
 
+  const authViews = ['report','workspace','dashboard'];   // 需登录才能进
   function go(view, opts={}){
     if(!views.includes(view)) return;
+    if(authViews.includes(view) && !(window.STATE&&STATE.user)){ if(window.AUTH) AUTH.require(); return; }
     const prevView = current;
     const prevEl = document.getElementById('view-'+current);
     const nextEl = document.getElementById('view-'+view);

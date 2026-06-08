@@ -3,9 +3,10 @@
    ==================================================================== */
 window.REPORT = (function(){
   let D=window.DATA;                 // 渲染时切换为 ACTIVE() (真实审核结果 or 演示数据)
-  let mountEl, curFile=null, filter='all';
+  let mountEl, curFile=null, filter='all', docOpen=false;
 
   function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+  function cdata(){ return (window.STATE && STATE.contract) || {}; }   // 真实合同(含 fulltext/fixes)
 
   function verdict(score){
     if(score>=85) return {t:'整体稳健',n:'多数条款合规，仅需关注少量优化点。'};
@@ -98,10 +99,42 @@ window.REPORT = (function(){
           </div>
         </div>
         <div class="findings" id="findings"></div>
+
+        ${cdata().fulltext ? `
+        <div class="rep-doc">
+          <div class="rep-doc-head" id="docToggle">
+            <h3>合同原文 ${(cdata().fixes||[]).length?`<span class="doc-fixn">已修改 ${(cdata().fixes||[]).length} 处</span>`:''}</h3>
+            <button class="btn ghost sm">${docOpen?'收起原文':'展开查看原文'}</button>
+          </div>
+          <div class="rep-doc-body" id="docBody" ${docOpen?'':'hidden'}></div>
+        </div>` : ''}
       </div>`;
 
     renderFindings();
+    if(cdata().fulltext){ renderDoc(); wireDoc(); }
     wire();
+  }
+
+  /* 合同原文 + 已应用修改的红线批注 */
+  function renderDoc(){
+    const body=mountEl.querySelector('#docBody'); if(!body) return;
+    let html=esc(cdata().fulltext||'');
+    (cdata().fixes||[]).forEach(fx=>{
+      if(!fx.found || !fx.replacement) return;
+      const rep=esc(fx.replacement);
+      if(html.indexOf(rep)<0) return;
+      const ann=`<del class="doc-del">${esc(fx.original)}</del><ins class="doc-ins" title="${esc(fx.note||'已修订')}">${rep}</ins>`;
+      html=html.replace(rep, ann);
+    });
+    body.innerHTML=html;
+  }
+  function wireDoc(){
+    const t=mountEl.querySelector('#docToggle'); if(!t) return;
+    t.addEventListener('click',()=>{
+      docOpen=!docOpen;
+      const body=mountEl.querySelector('#docBody'); if(body) body.hidden=!docOpen;
+      const btn=t.querySelector('button'); if(btn) btn.textContent=docOpen?'收起原文':'展开查看原文';
+    });
   }
 
   function renderFindings(){
@@ -119,8 +152,10 @@ window.REPORT = (function(){
           ${c.fix?`<div class="f-block fix"><div class="bl">修改建议</div><div class="bt">${c.fix}</div></div>`:''}
           ${c.basis?`<div class="f-block"><div class="bl">依据</div><div class="f-basis">${c.basis.map(b=>`<span class="bchip">${b}</span>`).join('')}</div></div>`:''}
           <div class="f-actions">
+            ${cdata().fulltext?`<button class="btn sm f-fix" data-fix="${c.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>一键修复</button>`:''}
             <button class="btn ghost sm" data-go="workspace">在原文中查看</button>
-          </div>`;
+          </div>
+          <div class="f-proposal"></div>`;
       return `
         <div class="finding" data-sev="${sev}">
           <div class="f-row">
@@ -137,9 +172,48 @@ window.REPORT = (function(){
       f.querySelector('.f-row').addEventListener('click',()=>f.classList.toggle('open'));
     });
     host.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();APP.go(b.dataset.go);}));
+    host.querySelectorAll('.f-fix').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); proposeFix(b.dataset.fix, b); }));
     // auto-open first risk
     const firstRisk=host.querySelector('.finding[data-sev="high"]');
     if(firstRisk) firstRisk.classList.add('open');
+  }
+
+  /* 一键修复: 让 AI 出"原文→改为"提议, 显示给用户确认 */
+  async function proposeFix(clauseId, btn){
+    const id=cdata().id; if(!id) return;
+    const finding=btn.closest('.finding'); const host=finding.querySelector('.f-proposal');
+    const o=btn.innerHTML; btn.disabled=true; btn.textContent='AI 生成中…';
+    try{
+      const p=await API.fixClause(id, clauseId);
+      btn.disabled=false; btn.innerHTML=o;
+      host.innerHTML=`
+        <div class="prop-card">
+          <div class="prop-h">AI 建议修改${p.found?'':' <span class="prop-warn">(未能在原文精确定位，将作为补充)</span>'}</div>
+          <div class="prop-diff">
+            <div class="pd-row"><span class="pd-lbl old">原</span><del>${esc(p.original||'(空缺/未约定)')}</del></div>
+            <div class="pd-row"><span class="pd-lbl new">改为</span><ins>${esc(p.replacement)}</ins></div>
+          </div>
+          ${p.note?`<div class="prop-note">${esc(p.note)}</div>`:''}
+          <div class="prop-acts"><button class="btn sm prop-ok">确认修改</button><button class="btn ghost sm prop-cancel">取消</button></div>
+        </div>`;
+      host.querySelector('.prop-cancel').addEventListener('click',e=>{ e.stopPropagation(); host.innerHTML=''; });
+      host.querySelector('.prop-ok').addEventListener('click',e=>{ e.stopPropagation(); applyProposal(clauseId, p, e.currentTarget); });
+    }catch(err){
+      btn.disabled=false; btn.innerHTML=o;
+      host.innerHTML=`<div class="prop-card err">生成失败：${esc(err.message||'请重试')}</div>`;
+    }
+  }
+
+  /* 确认 → 真正应用: 改原文、删条款、提分 */
+  async function applyProposal(clauseId, p, okBtn){
+    const id=cdata().id; if(!id) return;
+    okBtn.disabled=true; okBtn.textContent='应用中…';
+    try{
+      const updated=await API.applyFix(id, { clauseId, original:p.original, replacement:p.replacement, note:p.note });
+      window.STATE.contract=updated;
+      docOpen=true;        // 应用后展开原文看批注
+      render(); animateIn();
+    }catch(err){ okBtn.disabled=false; okBtn.textContent='确认修改'; alert('应用失败：'+(err.message||'请重试')); }
   }
 
   function wire(){

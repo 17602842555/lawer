@@ -157,6 +157,12 @@ window.API = (function () {
   const getStatus = (id) => jsonFetch('/api/contracts/' + id + '/status');
   const deleteContract = (id) => jsonFetch('/api/contracts/' + id, { method: 'DELETE' });
   const listContracts = () => jsonFetch('/api/contracts');
+  const fixClause = (id, clauseId) => jsonFetch('/api/contracts/' + id + '/fix-clause', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clauseId }),
+  });
+  const applyFix = (id, payload) => jsonFetch('/api/contracts/' + id + '/apply-fix', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+  });
   function createConversation(contractId, title) {
     return jsonFetch('/api/contracts/' + contractId + '/conversations', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -201,7 +207,7 @@ window.API = (function () {
     register, login, logout, me,
     uploadFile, uploadText, sampleContract, review,
     getContract, getStatus, deleteContract, listContracts, createConversation, streamChat,
-    listConversations, getMessages, downloadRevised,
+    listConversations, getMessages, downloadRevised, fixClause, applyFix,
     get online() { return STATE.online; },
     get live() { return STATE.live; },
     get user() { return STATE.user; },

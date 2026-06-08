@@ -173,9 +173,22 @@ window.FLOW = (function(){
     window.dispatchEvent(new CustomEvent('contract:error',{ detail:{ error:'处理超时，请重试。' } }));
   }
 
+  /* 重新审核(失败后): 重新触发后台审核并轮询 */
+  async function reReview(id){
+    if(!id) return;
+    window.STATE.processing=true; window.STATE.flowError=null; window.STATE.ocrProgress=null;
+    try{ await API.review(id); }
+    catch(e){
+      window.STATE.processing=false;
+      window.dispatchEvent(new CustomEvent('contract:error',{ detail:{ error:e.message||'重试失败' } }));
+      return;
+    }
+    backgroundReview(id);
+  }
+
   function init(){
     // restart / close handled by report's back button
   }
 
-  return { init, start };
+  return { init, start, reReview };
 })();

@@ -148,7 +148,19 @@ window.WORKSPACE = (function(){
   function onContractError(msg){
     clearInterval(procTimer);
     const meta=mountEl.querySelector('#procMeta'); if(meta) meta.textContent='审核失败';
-    addMsg('agent', `<p style="color:var(--risk-high)">审核未完成：${esc(msg||'请重试')}。你可以重新上传合同。</p>`);
+    const node=addMsg('agent', `<p style="color:var(--risk-high)">审核未完成：${esc(msg||'请重试')}</p>`);
+    const wrap=document.createElement('div'); wrap.className='msg-actions';
+    wrap.innerHTML=`<button class="btn sm" data-rereview="1">重新审核</button>`;
+    node.querySelector('.bubble').appendChild(wrap);
+    wrap.querySelector('[data-rereview]').addEventListener('click',(e)=>{
+      const id=window.STATE&&STATE.contract&&STATE.contract.id; if(!id) return;
+      e.currentTarget.disabled=true;
+      if(window.STATE) STATE.processing=true;
+      const m=mountEl.querySelector('#procMeta'); if(m) m.textContent='重新审核中…';
+      startProcWatch();
+      addMsg('agent','<p>正在重新审核，请稍候…</p>');
+      if(window.FLOW && FLOW.reReview) FLOW.reReview(id);
+    });
   }
 
   /* 从云端加载该会话历史消息 (恢复对话) */

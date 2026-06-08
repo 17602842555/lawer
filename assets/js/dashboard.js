@@ -122,13 +122,20 @@ window.DASHBOARD = (function(){
     }catch(e){ console.warn('[dashboard] 恢复对话失败:',e.message); }
   }
 
-  /* 点开合同 → 载入审核结果, 新建一个会话进入报告 */
+  /* 点开合同 → 载入审核结果; 优先复用该合同已有对话(保留历史), 没有才新建 */
   async function openRow(h){
     if(!h || !h.id) return;
     try{
       const c=await API.getContract(h.id);
-      window.STATE.contract=c; window.STATE.conversationId=null; window.STATE.resume=false;
-      try{ const conv=await API.createConversation(c.id); window.STATE.conversationId=conv.conversationId; }catch{}
+      window.STATE.contract=c; window.STATE.processing=false; window.STATE.conversationId=null; window.STATE.resume=false;
+      let cid=null;
+      try{
+        const convs=await API.listConversations();
+        const mine=(convs||[]).filter(x=>x.contractId===h.id);   // 已按最近排序, 仅含有消息的对话
+        if(mine.length){ cid=mine[0].id; window.STATE.resume=true; }   // 复用 → 恢复历史
+      }catch{}
+      if(!cid){ try{ const conv=await API.createConversation(c.id); cid=conv.conversationId; }catch{} }
+      window.STATE.conversationId=cid;
       APP.go('report',{file:c.filename});
     }catch(e){ console.warn('[dashboard] 加载合同失败:',e.message); }
   }

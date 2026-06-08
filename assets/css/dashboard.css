@@ -33,10 +33,18 @@
 .dt-score{display:flex;align-items:center;gap:9px}
 .dt-score .sc-ring{width:34px;height:34px;flex:none}
 .dt-score .sc-n{font-family:var(--disp);font-weight:600;font-size:15px}
-.dt-go{justify-self:end;display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;
+.dt-go{justify-self:end;display:inline-flex;align-items:center;gap:10px}
+.dt-view{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;
   letter-spacing:.1em;text-transform:uppercase;color:var(--acc-ink)}
-.dt-go svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;transition:transform .25s}
-.dt-row:hover .dt-go svg{transform:translateX(3px)}
+.dt-view svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;transition:transform .25s}
+.dt-row:hover .dt-view svg{transform:translateX(3px)}
+.dt-del{display:grid;place-items:center;width:30px;height:30px;border:0;border-radius:8px;cursor:pointer;
+  background:transparent;color:var(--muted);opacity:0;transition:opacity .2s,color .2s,background .2s}
+.dt-row:hover .dt-del{opacity:1}
+.dt-del:hover{color:var(--risk-high);background:color-mix(in srgb,var(--risk-high) 14%,transparent)}
+.dt-del:disabled{opacity:.5;cursor:default}
+.dt-del svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:760px){ .dt-del{opacity:1} }
 .dt-badge{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:3px 8px;border-radius:6px;
   background:var(--acc-soft);color:var(--acc-ink)}
 @media (max-width:760px){

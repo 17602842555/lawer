@@ -56,7 +56,10 @@ window.DASHBOARD = (function(){
               <span class="rd"><span class="dot-mid" style="width:7px;height:7px;border-radius:50%;display:inline-block"></span><b>${h.mid}</b></span>
             </div>
             <div class="dt-score">${scoreRing(h.score)}<span class="sc-n">${h.score}</span></div>
-            <div class="dt-go">查看<svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></div>
+            <div class="dt-go">
+              <button class="dt-del" data-del="${i}" title="删除合同"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m1 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg></button>
+              <span class="dt-view">查看<svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
+            </div>
           </div>`).join('')}
       </div>` : `
       <div class="dash-empty">
@@ -84,12 +87,29 @@ window.DASHBOARD = (function(){
       </div>`;
 
     mountEl.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>APP.go(b.dataset.go)));
-    mountEl.querySelectorAll('.dt-row').forEach(r=>r.addEventListener('click',()=>openRow(list[+r.dataset.idx])));
+    mountEl.querySelectorAll('.dt-row').forEach(r=>r.addEventListener('click',(e)=>{ if(e.target.closest('.dt-del')) return; openRow(list[+r.dataset.idx]); }));
+    mountEl.querySelectorAll('.dt-del').forEach(b=>b.addEventListener('click',(e)=>{ e.stopPropagation(); removeRow(list[+b.dataset.del], b); }));
     mountEl.querySelectorAll('.conv-card').forEach(r=>r.addEventListener('click',()=>openConversation(convos[+r.dataset.conv])));
     mountEl.querySelectorAll('[data-scroll-home-upload]').forEach(b=>b.addEventListener('click',()=>{
       APP.go('home');
       setTimeout(()=>{const t=document.querySelector('#view-home .upload-section');if(t)window.scrollTo({top:t.offsetTop-40,behavior:'smooth'});},120);
     }));
+  }
+
+  /* 删除合同(连带对话/记忆) */
+  async function removeRow(h, btn){
+    if(!h || !h.id) return;
+    if(!confirm(`确定删除「${h.file}」吗？\n该合同的审核结果、对话与记忆都会一并删除，且不可恢复。`)) return;
+    if(btn){ btn.disabled=true; btn.classList.add('busy'); }
+    try{
+      await API.deleteContract(h.id);
+      // 若当前打开的就是这份合同, 清掉状态
+      if(window.STATE && STATE.contract && STATE.contract.id===h.id){ STATE.contract=null; STATE.conversationId=null; }
+      load();   // 重新拉取合同库 + 对话
+    }catch(e){
+      if(btn){ btn.disabled=false; btn.classList.remove('busy'); }
+      alert('删除失败：'+(e.message||'请重试'));
+    }
   }
 
   /* 点开历史对话 → 载入合同 + 标记恢复, 进入工作台加载消息 */

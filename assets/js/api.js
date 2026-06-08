@@ -9,12 +9,13 @@ window.STATE = { contract: null, conversationId: null, live: false, online: fals
 /* 当前生效的数据集: 真实审核结果 or 内置演示数据 (DATA) */
 window.ACTIVE = function () {
   const c = window.STATE && window.STATE.contract;
-  if (c && Array.isArray(c.clauses) && c.clauses.length) {
+  // 真实合同(含"审核中"占位, clauses 可能暂为空)都用它; 仅当无合同时回退演示数据
+  if (c && c.id) {
     return {
-      SUMMARY: c.summary || {},
-      CLAUSES: c.clauses || [],
-      MISSING: c.missing || [],
-      KB: c.kb || [],
+      SUMMARY: c.summary || { file: c.filename },
+      CLAUSES: Array.isArray(c.clauses) ? c.clauses : [],
+      MISSING: Array.isArray(c.missing) ? c.missing : [],
+      KB: Array.isArray(c.kb) ? c.kb : [],
       QUICK: window.DATA.QUICK,
       sevLabel: window.DATA.sevLabel,
       sevDot: window.DATA.sevDot,

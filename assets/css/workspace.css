@@ -169,3 +169,12 @@
   .ws3{grid-template-columns:1fr}
   .ws-right{display:none}
 }
+
+/* ---------- 审核中(异步)状态 ---------- */
+.ws-status.proc{color:var(--risk-mid)}
+.ws-status.proc .sd{background:var(--risk-mid);animation:procPulse 1.2s ease-in-out infinite}
+@keyframes procPulse{0%,100%{opacity:.4}50%{opacity:1}}
+.proc-hint{display:flex;align-items:center;gap:10px;padding:20px 16px;font-size:13px;color:var(--muted);line-height:1.7}
+.proc-hint .spin{width:15px;height:15px;flex:none;border-radius:50%;
+  border:2px solid var(--hair);border-top-color:var(--acc-1);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}

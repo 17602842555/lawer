@@ -21,15 +21,22 @@ window.WORKSPACE = (function(){
   /* ---------- render shell ---------- */
   function render(){
     D=window.ACTIVE();
-    const s=D.SUMMARY;
+    const s=D.SUMMARY||{};
+    const proc=!!(window.STATE && STATE.processing);
+    const file=String(s.file||(window.STATE&&STATE.contract&&STATE.contract.filename)||'合同').replace(/\.[^.]+$/,'');
+    const type=s.type||''; const tags=Array.isArray(s.tags)?s.tags:[]; const dims=Array.isArray(s.dimensions)?s.dimensions:[];
+    const clN=D.CLAUSES.length;
+    const statusHtml = proc
+      ? `<span class="ws-status proc"><span class="sd"></span><span id="procMeta">审核中 · 正在分析…</span></span>`
+      : `<span class="ws-status"><span class="sd"></span>ready · 可对话</span><span>· ${clN} 条款 · ${s.words||'—'} 字</span>`;
     mountEl.innerHTML=`
       <div class="ws">
         <div class="ws-bar">
           <div class="ws-doc">
             <span class="di">${svg(ic.miss)}</span>
             <div style="min-width:0">
-              <div class="dn">${s.file.replace(/\.[^.]+$/,'')}</div>
-              <div class="dm"><span class="ws-status"><span class="sd"></span>ready · 可对话</span><span>· ${D.CLAUSES.length} 条款 · ${s.words} 字</span></div>
+              <div class="dn">${esc(file)}</div>
+              <div class="dm">${statusHtml}</div>
             </div>
           </div>
           <div class="ws-acts">
@@ -43,21 +50,18 @@ window.WORKSPACE = (function(){
           <div class="ws-col ws-left">
             <div class="ctype">
               <div class="ct-l">合同类型 · 行业</div>
-              <div class="ct-v">${s.type}合同</div>
-              <div class="tags">
-                ${s.tags.map(t=>`<span class="tag">${t}</span>`).join('')}
-              </div>
-              <div class="tags">
-                ${s.dimensions.map(t=>`<span class="tag dim">${t}</span>`).join('')}
-              </div>
+              <div class="ct-v">${type?esc(type)+'合同':(proc?'识别中…':'通用合同')}</div>
+              <div class="tags">${tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
+              <div class="tags">${dims.map(t=>`<span class="tag dim">${esc(t)}</span>`).join('')}</div>
             </div>
-            <div class="col-head">合同条款 <span class="ch-n">${D.CLAUSES.length}</span></div>
+            <div class="col-head">合同条款 <span class="ch-n">${proc&&!clN?'…':clN}</span></div>
             <div class="col-scroll" id="clList" style="padding-top:0">
-              ${D.CLAUSES.map(c=>`
+              ${clN ? D.CLAUSES.map(c=>`
                 <div class="cl-item" data-id="${c.id}" data-sev="${c.sev}">
                   <span class="cf"></span>
-                  <div class="cb"><div class="ci">§${c.id}</div><div class="ct">${c.title}</div></div>
-                </div>`).join('')}
+                  <div class="cb"><div class="ci">§${c.id}</div><div class="ct">${esc(c.title)}</div></div>
+                </div>`).join('')
+              : `<div class="proc-hint"><span class="spin"></span>${proc?'正在识别与审核合同，完成后这里会列出每条条款…':'暂无条款'}</div>`}
             </div>
           </div>
 
@@ -80,7 +84,7 @@ window.WORKSPACE = (function(){
             <div class="col-head">AGENT 洞察</div>
             <div style="padding:0 16px"><div id="curClause"></div></div>
             <div class="r-tabs" id="rtabs">
-              <button data-tab="risk" class="on">风险<span class="cnt">${s.high+s.mid}</span></button>
+              <button data-tab="risk" class="on">风险<span class="cnt">${proc?'…':(s.high||0)+(s.mid||0)}</span></button>
               <button data-tab="miss">缺失<span class="cnt">${D.MISSING.length}</span></button>
               <button data-tab="kb">来源<span class="cnt">${D.KB.length}</span></button>
             </div>
@@ -93,13 +97,58 @@ window.WORKSPACE = (function(){
       </div>`;
 
     wire();
-    fillRight();
+    fillRight(proc);
     // 恢复历史对话 or 首次问候
     if(window.STATE && STATE.resume && STATE.conversationId){ STATE.resume=false; loadHistory(); }
-    else greet();
-    // default current clause = first high risk
+    else greet(proc);
     const first=D.CLAUSES.find(c=>c.sev==='high');
     if(first) selectClause(first.id,{silent:true});
+    if(proc) startProcWatch();
+  }
+
+  /* 审核中: 刷新顶部进度文案 (OCR 逐页 / 审核中) */
+  let procTimer=null;
+  function startProcWatch(){
+    clearInterval(procTimer);
+    procTimer=setInterval(()=>{
+      if(!window.STATE || !STATE.processing){ clearInterval(procTimer); return; }
+      const meta=mountEl.querySelector('#procMeta'); if(!meta) return;
+      const p=STATE.ocrProgress;
+      if(p&&p.phase==='ocr'&&p.total) meta.textContent=`审核中 · 识别扫描件 ${p.done}/${p.total} 页…`;
+      else if(p&&p.phase==='review') meta.textContent='审核中 · 正在逐条分析…';
+      else meta.textContent='审核中 · 正在分析…';
+    },800);
+  }
+
+  /* 后台审核完成 → 局部更新条款/风险/状态(保留对话) + 系统提示 */
+  function onContractUpdated(){
+    clearInterval(procTimer);
+    D=window.ACTIVE();
+    const s=D.SUMMARY||{};
+    const dm=mountEl.querySelector('.ws-doc .dm');
+    if(dm) dm.innerHTML=`<span class="ws-status"><span class="sd"></span>ready · 可对话</span><span>· ${D.CLAUSES.length} 条款 · ${s.words||'—'} 字</span>`;
+    const ctv=mountEl.querySelector('.ctype .ct-v'); if(ctv) ctv.textContent=(s.type||'通用')+'合同';
+    const ctags=mountEl.querySelectorAll('.ctype .tags');
+    if(ctags[0]) ctags[0].innerHTML=(s.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
+    if(ctags[1]) ctags[1].innerHTML=(s.dimensions||[]).map(t=>`<span class="tag dim">${esc(t)}</span>`).join('');
+    const chN=mountEl.querySelector('.ws-left .col-head .ch-n'); if(chN) chN.textContent=D.CLAUSES.length;
+    const clList=mountEl.querySelector('#clList');
+    if(clList) clList.innerHTML=D.CLAUSES.map(c=>`
+      <div class="cl-item" data-id="${c.id}" data-sev="${c.sev}">
+        <span class="cf"></span><div class="cb"><div class="ci">§${c.id}</div><div class="ct">${esc(c.title)}</div></div>
+      </div>`).join('');
+    const rc=mountEl.querySelector('#rtabs button[data-tab="risk"] .cnt'); if(rc) rc.textContent=(s.high||0)+(s.mid||0);
+    const mc=mountEl.querySelector('#rtabs button[data-tab="miss"] .cnt'); if(mc) mc.textContent=D.MISSING.length;
+    const kc=mountEl.querySelector('#rtabs button[data-tab="kb"] .cnt'); if(kc) kc.textContent=D.KB.length;
+    fillRight(false);
+    bindClauseList();
+    const first=D.CLAUSES.find(c=>c.sev==='high'); if(first) selectClause(first.id,{silent:true});
+    addMsg('agent', `<p>✓ 审核完成：<strong>${esc(s.type||'')}合同</strong>，安全评分 <strong>${s.score ?? '—'}/100</strong>，<strong style="color:var(--risk-high)">${s.high ?? 0} 处高风险</strong>、${s.mid ?? 0} 处需关注。左侧看条款、右侧看风险清单，继续问我即可。</p>`);
+  }
+  function onContractError(msg){
+    clearInterval(procTimer);
+    const meta=mountEl.querySelector('#procMeta'); if(meta) meta.textContent='审核失败';
+    addMsg('agent', `<p style="color:var(--risk-high)">审核未完成：${esc(msg||'请重试')}。你可以重新上传合同。</p>`);
   }
 
   /* 从云端加载该会话历史消息 (恢复对话) */
@@ -130,9 +179,11 @@ window.WORKSPACE = (function(){
   }
 
   /* ---------- right column ---------- */
-  function fillRight(){
+  function fillRight(proc){
     const risks=D.CLAUSES.filter(c=>c.sev!=='pass');
-    mountEl.querySelector('#paneRisk').innerHTML = risks.map(c=>`
+    mountEl.querySelector('#paneRisk').innerHTML = (!risks.length && proc)
+      ? `<div class="proc-hint"><span class="spin"></span>审核进行中，风险清单稍后出现…</div>`
+      : risks.map(c=>`
       <div class="rcard" data-sev="${c.sev}" data-id="${c.id}">
         <div class="rc-h"><span class="rc-id">§${c.id}</span><span class="rc-t">${c.title}</span>
           <span class="rc-sev ${c.sev}"><span class="dot" style="background:${dot[c.sev]}"></span>${D.sevLabel[c.sev]}</span></div>
@@ -193,10 +244,16 @@ window.WORKSPACE = (function(){
     chatEl().appendChild(m); chatEl().scrollTop=chatEl().scrollHeight; return m;
   }
 
-  function greet(){
-    const s=D.SUMMARY;
-    addMsg('agent',`<p>您好，我已通读 <strong>《${s.file.replace(/\.[^.]+$/,'')}》</strong>，这是一份${s.type}服务合同。</p>
-      <p>整体安全评分 <strong>${s.score} / 100</strong>，识别出 <strong style="color:var(--risk-high)">${s.high} 处高风险</strong>、${s.mid} 处需关注。建议优先处理违约金与责任限制两条。</p>
+  function greet(proc){
+    const s=D.SUMMARY||{};
+    const file=String(s.file||(window.STATE&&STATE.contract&&STATE.contract.filename)||'合同').replace(/\.[^.]+$/,'');
+    if(proc){
+      addMsg('agent',`<p>已收到 <strong>《${esc(file)}》</strong>，我正在后台逐条识别与审核${window.STATE&&STATE.scanned?'（扫描件需先识别文字，约 1-3 分钟）':''}。</p>
+        <p>审核完成后，左侧会列出条款、右侧出风险清单，我也会提示你。<strong>现在就可以先问我问题</strong>，比如「这份合同甲方是谁」「有哪些风险」。</p>`);
+      return;
+    }
+    addMsg('agent',`<p>您好，我已通读 <strong>《${esc(file)}》</strong>，这是一份${esc(s.type||'')}合同。</p>
+      <p>整体安全评分 <strong>${s.score ?? '—'} / 100</strong>，识别出 <strong style="color:var(--risk-high)">${s.high ?? 0} 处高风险</strong>、${s.mid ?? 0} 处需关注。</p>
       <p>你可以点下方快捷问题，或直接问我这份合同的任何条款。</p>`);
   }
 
@@ -204,13 +261,20 @@ window.WORKSPACE = (function(){
     mountEl.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>APP.go(b.dataset.go)));
     mountEl.querySelectorAll('#quick button').forEach(b=>b.addEventListener('click',()=>quickAsk(b.dataset.key)));
     mountEl.querySelectorAll('#rtabs button').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
-    mountEl.querySelectorAll('.cl-item').forEach(el=>el.addEventListener('click',()=>{ selectClause(el.dataset.id,{silent:true}); ask('解释一下 §'+el.dataset.id+'「'+D.CLAUSES.find(c=>c.id===el.dataset.id).title+'」'); }));
+    bindClauseList();
     const ta=mountEl.querySelector('#cinput'), send=mountEl.querySelector('#csend');
     const grow=()=>{ ta.style.height='auto'; ta.style.height=Math.min(120,ta.scrollHeight)+'px'; };
     ta.addEventListener('input',grow);
     ta.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); doSend(); } });
     send.addEventListener('click',doSend);
     function doSend(){ const v=ta.value.trim(); if(!v) return; ta.value=''; grow(); ask(v); }
+  }
+
+  function bindClauseList(){
+    mountEl.querySelectorAll('.cl-item').forEach(el=>el.addEventListener('click',()=>{
+      const c=D.CLAUSES.find(x=>x.id===el.dataset.id); if(!c) return;
+      selectClause(el.dataset.id,{silent:true}); ask('解释一下 §'+el.dataset.id+'「'+c.title+'」');
+    }));
   }
 
   /* citation chips → click to jump */
@@ -361,6 +425,14 @@ window.WORKSPACE = (function(){
       if(!built || conKey!==lastContractId || cidKey!==lastConversationId || (window.STATE&&STATE.resume)){
         lastContractId=conKey; lastConversationId=cidKey; render(); built=true;
       }
+    });
+    // 后台审核完成/失败 → 仅当正看着这份合同的工作台时更新
+    window.addEventListener('contract:updated',(e)=>{
+      const id=e.detail&&e.detail.contract&&e.detail.contract.id;
+      if(APP.current==='workspace' && id && id===lastContractId) onContractUpdated();
+    });
+    window.addEventListener('contract:error',(e)=>{
+      if(APP.current==='workspace') onContractError(e.detail&&e.detail.error);
     });
   }
   return { init };

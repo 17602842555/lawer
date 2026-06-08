@@ -53,31 +53,20 @@ window.FLOW = (function(){
     overlay.appendChild(scene);
     requestAnimationFrame(()=>requestAnimationFrame(()=>scene.classList.add('in')));
 
-    APP.progress(3900);
+    APP.progress(6800);
 
     at(80,()=>{scene.classList.add('run');hud.classList.add('show');chip.classList.add('show');});
-    [...card.querySelectorAll('.doc-row')].forEach((r,ri)=>at(520+ri*210,()=>r.classList.add('lit')));
+    [...card.querySelectorAll('.doc-row')].forEach((r,ri)=>at(700+ri*360,()=>r.classList.add('lit')));
     const scn=()=>scene.querySelector('#scn');let counted=0;
-    CLAUSES.forEach((cl,idx)=>at(680+idx*340,()=>{
+    CLAUSES.forEach((cl,idx)=>at(900+idx*560,()=>{
       scene.querySelectorAll('.marker')[idx].classList.add('show');
       counted+=Math.round(23/CLAUSES.length);scn().textContent=String(Math.min(23,counted)).padStart(2,'0');
     }));
-    at(3150,()=>{if(scn())scn().textContent='23';});
-    at(3500,()=>scene.classList.add('reveal'));
-    at(3950,()=>{
-      if(!work){ finish(fileName); return; }
-      let done=false; work.then(()=>done=true,()=>done=true);
-      // 处理中持续刷新提示(扫描件显示 OCR 逐页进度)
-      setTimeout(()=>{ if(!done && chip) chip.innerHTML=`<span class="fdot"></span>正在审核合同…`; },300);
-      const progTimer=setInterval(()=>{
-        if(done){ clearInterval(progTimer); return; }
-        const p=window.STATE&&STATE.ocrProgress;
-        if(!chip) return;
-        if(p&&p.phase==='ocr'&&p.total) chip.innerHTML=`<span class="fdot"></span>扫描件识别中 ${p.done}/${p.total} 页…`;
-        else if(p&&p.phase==='review') chip.innerHTML=`<span class="fdot"></span>识别完成，正在审核…`;
-      },700);
-      Promise.race([ work.catch(()=>null), wait(310000) ]).then(()=>{
-        clearInterval(progTimer);
+    at(5200,()=>{if(scn())scn().textContent='23';});
+    at(6000,()=>scene.classList.add('reveal'));
+    at(6800,()=>{
+      // 审核已改为后台异步: 上传+建会话很快就绪; 动画结束即进工作台(审核中状态), 可立即对话
+      Promise.race([ work?work.catch(()=>null):Promise.resolve(), wait(25000) ]).then(()=>{
         if(window.STATE && STATE.flowError){ showError(STATE.flowError); return; }
         finish(fileName);
       });
@@ -116,45 +105,72 @@ window.FLOW = (function(){
 
   /* 后端流程: 上传/示例 → 审核 → 建会话; 失败则记录错误供 showError 展示 */
   async function prepareContract(fileName, opts){
-    window.STATE.contract=null; window.STATE.conversationId=null; window.STATE.flowError=null; window.STATE.ocrProgress=null;
+    window.STATE.contract=null; window.STATE.conversationId=null; window.STATE.flowError=null;
+    window.STATE.ocrProgress=null; window.STATE.processing=false; window.STATE.scanned=false;
     try{
       await API.ready();
       if(!API.online){ window.STATE.flowError='后端服务未连接。请检查网络或后端地址。'; return null; }
-      let contract=null;
-      if(opts.sampleKey){ const r=await API.sampleContract(opts.sampleKey); contract={ id:r.id, filename:r.filename, ...r.review }; }
-      else if(opts.fileObj){
-        const up=await API.uploadFile(opts.fileObj);
-        if(up.status==='processing'){ contract=await pollScanned(up.id); }   // 扫描件: 后台 OCR, 轮询
-        else { contract=await API.review(up.id); }
+
+      // 示例合同: 即时出结果
+      if(opts.sampleKey){
+        const r=await API.sampleContract(opts.sampleKey);
+        window.STATE.contract={ id:r.id, filename:r.filename, ...r.review };
+        const conv=await API.createConversation(r.id); window.STATE.conversationId=conv.conversationId;
+        return window.STATE.contract;
       }
-      else if(opts.contractId){ contract=await API.getContract(opts.contractId); }
-      else return null;
-      if(!contract||!Array.isArray(contract.clauses)||!contract.clauses.length){ window.STATE.flowError='审核结果为空，请重试。'; return null; }
-      window.STATE.contract=contract;
-      const conv=await API.createConversation(contract.id);
-      window.STATE.conversationId=conv.conversationId;
-      return contract;
+      // 从合同库点开(已审核)
+      if(opts.contractId){
+        const c=await API.getContract(opts.contractId);
+        window.STATE.contract=c;
+        const conv=await API.createConversation(c.id); window.STATE.conversationId=conv.conversationId;
+        return c;
+      }
+      // 上传: 立即建会话 → 进工作台; 审核全程后台跑, 完成后自动填充
+      if(opts.fileObj){
+        const up=await API.uploadFile(opts.fileObj);
+        try{ const conv=await API.createConversation(up.id); window.STATE.conversationId=conv.conversationId; }catch{}
+        if(up.status==='done'){   // 演示模式直接拿结果
+          const c=await API.getContract(up.id); window.STATE.contract=c; return c;
+        }
+        window.STATE.contract={ id:up.id, filename:up.filename||fileName, processing:true,
+          summary:{ file:up.filename||fileName }, clauses:[], missing:[], kb:[] };
+        window.STATE.processing=true; window.STATE.scanned=!!up.scanned;
+        backgroundReview(up.id);   // 不 await, 后台轮询
+        return window.STATE.contract;
+      }
+      return null;
     }catch(e){
       console.warn('[flow] 准备合同失败:', e.message);
-      window.STATE.contract=null; window.STATE.conversationId=null;
+      window.STATE.contract=null; window.STATE.conversationId=null; window.STATE.processing=false;
       window.STATE.flowError=e.message||'处理失败，请重试。';
       return null;
     }
   }
   const wait=(ms)=>new Promise(r=>setTimeout(r,ms));
 
-  /* 扫描件: 轮询后台 OCR+审核 状态, 完成后取结果 */
-  async function pollScanned(id){
-    const deadline=Date.now()+305000;
+  /* 后台轮询审核状态, 完成后更新合同并通知工作台刷新 */
+  async function backgroundReview(id){
+    const deadline=Date.now()+600000;
     while(Date.now()<deadline){
-      let st; try{ st=await API.getStatus(id); }catch(e){ window.STATE.flowError=e.message||'查询状态失败'; return null; }
+      let st; try{ st=await API.getStatus(id); }catch{ await wait(4000); continue; }
       window.STATE.ocrProgress = st.progress || null;
-      if(st.status==='done'){ window.STATE.ocrProgress=null; return await API.getContract(id); }
-      if(st.status==='error'){ window.STATE.flowError=st.error||'扫描件处理失败，请重试。'; return null; }
+      if(st.status==='done'){
+        try{
+          const c=await API.getContract(id);
+          window.STATE.contract=c; window.STATE.processing=false; window.STATE.ocrProgress=null;
+          window.dispatchEvent(new CustomEvent('contract:updated',{ detail:{ contract:c } }));
+        }catch(e){ console.warn('[flow] 取审核结果失败:', e.message); }
+        return;
+      }
+      if(st.status==='error'){
+        window.STATE.processing=false; window.STATE.ocrProgress=null;
+        window.dispatchEvent(new CustomEvent('contract:error',{ detail:{ error:st.error||'审核失败，请重试。' } }));
+        return;
+      }
       await wait(3000);
     }
-    window.STATE.flowError='处理超时，请重试或换用文字版合同。';
-    return null;
+    window.STATE.processing=false;
+    window.dispatchEvent(new CustomEvent('contract:error',{ detail:{ error:'处理超时，请重试。' } }));
   }
 
   function init(){

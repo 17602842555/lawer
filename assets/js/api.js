@@ -103,6 +103,22 @@ window.API = (function () {
   const listConversations = () => jsonFetch('/api/conversations');
   const getMessages = (cid) => jsonFetch('/api/conversations/' + cid + '/messages');
 
+  /* 下载修订版合同 Word (带鉴权 → blob → 触发下载) */
+  async function downloadRevised(contractId) {
+    const res = await fetch(base + '/api/contracts/' + contractId + '/revision/download', { headers: authHeaders() });
+    if (res.status === 401) { onUnauthorized(); throw new Error('未登录'); }
+    if (!res.ok) { let m = res.status + ''; try { m = (await res.json()).error || m; } catch {} throw new Error(m); }
+    const blob = await res.blob();
+    let name = '修订版合同.docx';
+    const cd = res.headers.get('Content-Disposition') || '';
+    const mm = cd.match(/filename\*=UTF-8''([^;]+)/);
+    if (mm) { try { name = decodeURIComponent(mm[1]); } catch {} }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+  }
+
   /* ---- 健康检查: 后端是否在线 / 是否接入真实模型 ---- */
   async function health() {
     try {
@@ -185,7 +201,7 @@ window.API = (function () {
     register, login, logout, me,
     uploadFile, uploadText, sampleContract, review,
     getContract, getStatus, deleteContract, listContracts, createConversation, streamChat,
-    listConversations, getMessages,
+    listConversations, getMessages, downloadRevised,
     get online() { return STATE.online; },
     get live() { return STATE.live; },
     get user() { return STATE.user; },

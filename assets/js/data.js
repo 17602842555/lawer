@@ -85,7 +85,7 @@ window.DATA = (function(){
   /* 工作台快捷问题 */
   const QUICK = [
     { q:'列出高风险条款', key:'high' },
-    { q:'生成修改建议',   key:'fix' },
+    { q:'帮我修订合同',   key:'revise' },
     { q:'缺失哪些材料',   key:'missing' },
     { q:'导出审核报告',   key:'report' },
   ];

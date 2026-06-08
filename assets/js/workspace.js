@@ -165,6 +165,8 @@ window.WORKSPACE = (function(){
           wrap.innerHTML=cites.map(serverCite).join('');
           node.querySelector('.bubble').appendChild(wrap); wireCites(wrap);
         }
+        const action=m.meta && m.meta.action;
+        if(action && action.type==='download-revised') appendDownloadBtn(node.querySelector('.bubble'), action.contractId);
       });
       chatEl().scrollTop=chatEl().scrollHeight;
     }catch(e){ console.warn('[ws] 加载历史失败:', e.message); greet(); }
@@ -172,7 +174,7 @@ window.WORKSPACE = (function(){
 
   function quickIcon(k){
     if(k==='high') return svg(ic.high);
-    if(k==='fix') return svg(ic.fix);
+    if(k==='fix'||k==='revise') return svg(ic.fix);
     if(k==='missing') return svg(ic.miss);
     if(k==='report') return svg(ic.rep);
     return '';
@@ -290,6 +292,9 @@ window.WORKSPACE = (function(){
   /* ---------- answer builders ---------- */
   function answer(key){
     const hi=D.CLAUSES.filter(c=>c.sev==='high'), mid=D.CLAUSES.filter(c=>c.sev==='mid');
+    if(key==='revise'){
+      return { html:`<p>修订合同需要接入大模型。接入后，直接在对话里说「<strong>帮我改合同</strong>」，AGENT 会先出修订方案、逐条问你需要的信息，再生成可下载的修订版 Word。</p>` };
+    }
     if(key==='high'){
       const list=[...hi,...mid].map(c=>`<div class="bi"><span class="bd" style="background:${dot[c.sev]}"></span>
         <div class="bx"><b>§${c.id} ${c.title}</b><div class="bm">${c.ai.split('。')[0]}。</div></div></div>`).join('');
@@ -377,6 +382,7 @@ window.WORKSPACE = (function(){
           const fc=ev.cites.find(c=>c.kind==='clause');
           if(fc){ setTab('risk'); selectClause(fc.ref,{silent:true}); }
         }
+        if(ev.action && ev.action.type==='download-revised') appendDownloadBtn(bubble, ev.action.contractId);
         sending=false; scroll();
       },
       onError:(e)=>{
@@ -391,6 +397,19 @@ window.WORKSPACE = (function(){
   }
 
   const serverCite=(c)=>citeChip(c.label, c.kind==='clause'?'clause':'kb', c.ref);
+
+  /* 修订完成 → 在气泡里加"下载修订版 Word"按钮 */
+  function appendDownloadBtn(bubble, contractId){
+    if(!bubble || !contractId) return;
+    const wrap=document.createElement('div'); wrap.className='msg-actions';
+    wrap.innerHTML=`<button class="btn sm" data-dl="${contractId}">${svg(ic.rep,'')}下载修订版 Word</button>`;
+    bubble.appendChild(wrap);
+    wrap.querySelector('[data-dl]').addEventListener('click',(e)=>{
+      const b=e.currentTarget, o=b.innerHTML; b.disabled=true; b.textContent='生成中…';
+      API.downloadRevised(contractId).then(()=>{ b.disabled=false; b.innerHTML=o; })
+        .catch(err=>{ b.disabled=false; b.innerHTML=o; alert('下载失败：'+(err.message||'请重试')); });
+    });
+  }
 
   /* 极简 Markdown → HTML (加粗 / 段落 / 换行) */
   function mdToHtml(t){
